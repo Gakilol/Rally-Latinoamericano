@@ -1,96 +1,120 @@
-# Sistema Autónomo de Detección, Gestión de Rescate y Alerta Temprana Post-Desastre para Zonas Vulnerables (RESILIX-LATAM)
+# Sistema Nodal Autónomo de Detección, Gestión de Rescate y Escalamiento Jerárquico Post-Desastre (RESILIX-LATAM)
 
 **Desafío Oficial:** Desafío 9 — Optimización y priorización de recursos y esfuerzos en la post-emergencia  
-**Ámbito de Aplicación:** Zonas vulnerables de Latinoamérica (con foco en regiones aisladas, cuencas hídricas y Costa Caribe)  
-**Disciplina:** Ingeniería en Computación / Sistemas Distribuidos / Internet de las Cosas (IoT) e Inteligencia Artificial  
+**Ámbito de Aplicación:** Zonas vulnerables de Latinoamérica (costas, riberas y comunidades aisladas)  
+**Disciplina:** Ingeniería en Computación / Sistemas Distribuidos / Cloud & Edge IoT  
 
 ---
 
-## 1. Introducción y Justificación
+## 1. Resumen Ejecutivo y Visión
 
-Tras el embate de fenómenos hidrometeorológicos y geológicos extremos (huracanes categoría 4-5, inundaciones súbitas, deslaves y tormentas tropicales recurrentes en Centroamérica y el Caribe), las comunidades periurbanas, rurales e indígenas experimentan un **aislamiento crítico**. 
+El proyecto propone una **red de torres sensoriales autónomas conectadas a una plataforma cloud distribuida por nodos**, diseñada para operar de forma continua en las tres fases del ciclo del desastre (**Pre, Durante y Post-Emergencia**). 
 
-### Diagnóstico de la Problemática
-1. **Colapso de Telecomunicaciones:** Caída inmediata de antenas celulares comerciales y corte de tendido eléctrico, generando un "apagón informativo" durante las primeras 24 a 72 horas (la *Ventana de Supervivencia* o *Golden 72 Hours*).
-2. **Asimetría de Recursos:** Carencia de brigadas permanentes de rescate en localidades remotas.
-3. **Rescate a Ciegas:** Las autoridades centrales (SINAPRED, Defensa Civil, Comités Municipales COMUPRED, Cruz Roja) se ven desbordadas con reportes fragmentados, duplicados o falsos rumores, enviando cuadrillas a zonas accesibles mientras comunidades bajo el agua permanecen invisibles.
+Al detectar una catástrofe o anomalía extrema, la torre genera un **Paquete de Telemetría Crítica SOS** (mapa de calor de sobrevivientes, estimación de personas atrapadas, nivel de agua/marea y estado de servicios vitales). Este paquete se despacha de inmediato a los actores esenciales (Hospitales, Centros de Salud, Centros de Operaciones de Emergencia —CODE— y Plantas de Bombeo de Agua Potable). 
 
-### Propósito del Proyecto
-Desarrollar un sistema ciberfísico autónomo que combine **infraestructura sensorial fija (Torres y Faros inteligentes)**, una **plataforma centralizada de toma de decisiones algorítmicas** y una **red de alerta comunitaria en cascada (Mesh SOS)** para garantizar que ninguna vida quede desatendida.
+Si la capacidad de respuesta local se encuentra colapsada, destruida o desbordada, el sistema activa un **Algoritmo de Escalamiento Jerárquico Automático** que eleva la solicitud en cascada del nivel **Comunitario ➔ Municipal ➔ Departamental ➔ Capital/Nacional**, garantizando que la ayuda llegue sin vacíos de comunicación.
 
 ---
 
-## 2. Descripción del Proceso y Arquitectura Tecnológica
-
-El sistema articula tres componentes interconectados bajo estándares de tolerancia a fallos (*Offline-First* y *Delay-Tolerant Networking*):
+## 2. El Ciclo Integral de Monitoreo (Pre, Durante y Post)
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                   A. DETECCIÓN Y MONITOREO EN BORDE                     │
-│  Torres Inteligentes / Faros Costeros con Visión Térmica y Presencia   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Telemetría / Coordenadas térmicas
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│              B. PLATAFORMA CENTRALIZADA DE GESTIÓN Y MANDO             │
-│   Triage Algorítmico · Optimización de Rutas · Dashboard SINAPRED/COE  │
-└───────────────────────────────────▲────────────────────────────────────┘
-                                    │ Paquetes SOS en Cascada
-                                    │
-┌───────────────────────────────────┴────────────────────────────────────┐
-│              C. RED DE ALERTA SOS COMUNITARIA EN CASCADA                │
-│    Comunidad A ──(Mesh/LoRa/SMS)──> Comunidad B ──> Nodo Central       │
-└────────────────────────────────────────────────────────────────────────┘
+       PRE-EMERGENCIA                      DURANTE EL IMPACTO                     POST-EMERGENCIA
+ ┌─────────────────────────┐           ┌────────────────────────┐           ┌────────────────────────┐
+ │ • Nivel de marea / río  │           │ • Monitoreo de anegado │           │ • Mapa de calor (FLIR) │
+ │ • Presión barométrica   │   ─────>  │ • Resistencia de torre │   ─────>  │ • Conteo de víctimas   │
+ │ • Velocidad del viento  │           │ • Registro de colapsos │           │ • Estado de bombeo     │
+ │ • Alerta temprana       │           │ • Transmisión satélite │           │ • Disparo SOS + Triage │
+ └─────────────────────────┘           └────────────────────────┘           └────────────────────────┘
+```
+
+1. **Fase Pre-Emergencia (Prevención Activa):**
+   - Sensores ultrasónicos e hidrostáticos miden en tiempo real el ascenso de mareas o caudales de ríos.
+   - La estación meteorológica detecta caídas abruptas de presión barométrica (huracanes) y velocidades críticas de viento.
+   - Emite avisos tempranos a la población y a los comités locales de prevención para evacuación preventiva.
+
+2. **Fase Durante la Emergencia (Supervivencia y Registro Ciego):**
+   - La torre, construida bajo grado de protección IP67 y alimentada por energía solar con baterías LiFePO4, mantiene su operatividad aunque la red eléctrica y celular comercial colapsen.
+   - Registra el avance de la inundación y almacena los datos de impacto en su servidor de borde (*Edge Storage*).
+
+3. **Fase Post-Emergencia (Rescate Inmediato y Telemetría de Supervivencia):**
+   - Inicia el barrido térmico perimetral de $360^\circ$ con cámaras LWIR para identificar firmas de calor corporal humano (36°C - 37.5°C).
+   - Sensores de presencia mmWave confirman vida en estructuras cubiertas por escombros o follaje.
+   - Estructuración del paquete de datos SOS y envío instantáneo al servidor central y actores de auxilio.
+
+---
+
+## 3. El Paquete de Telemetría SOS (Datos que Envía la Torre)
+
+La torre no envía simples textos; emite una estructura de datos estandarizada (formato JSON/CAP comprimido) con métricas accionables:
+
+```json
+{
+  "node_id": "TORRE-CARIBE-04",
+  "community": "Haulover / Prinzapolka",
+  "timestamp": "2026-10-16T14:02:10Z",
+  "status": "POST_DISASTER_CRITICAL",
+  "metrics": {
+    "water_level_meters": 2.45,
+    "flood_trend": "RECEDING",
+    "thermal_human_count": 18,
+    "estimated_trapped_persons": 6,
+    "critical_infrastructure": {
+      "water_pump_station": "FLOODED_INOPERATIVE",
+      "local_health_post": "ROOF_COLLAPSED",
+      "main_dock_pier": "ACCESSIBLE_FOR_BOATS"
+    }
+  },
+  "calculated_priority": "LEVEL_1_EXTREME",
+  "thermal_heatmap_uri": "s3://resilix-latam/heatmaps/tc04_20261016.png"
+}
 ```
 
 ---
 
-### A. Detección y Monitoreo con Torres Inteligentes (Edge Computing)
+## 4. Matriz de Distribución Multiactor (Nodos Sectoriales)
 
-* **Infraestructura Física Resistente:**
-  - Red de torres autosuficientes (aprovechamiento de faros costeros, torres de telecomunicación existentes o postes modulares de celosía galvanizada con grado de protección IP67/NEMA 4X contra vientos huracanados).
-  - Alimentación autónoma 24/7 mediante celdas fotovoltaicas de alta eficiencia acopladas a bancos de baterías de Litio-Ferrofosfato (LiFePO4) de descarga profunda.
-* **Módulo Óptico y Térmico:**
-  - Cámaras térmicas de longitud de onda infrarroja (LWIR) montadas en domos giratorios PTZ con escaneo perimetral continuo de 360 grados.
-  - **Procesamiento de Imágenes en el Borde (Edge AI):** Modelos de visión artificial (*Tiny-YOLOv8*) ejecutados directamente en microcomputadores industriales en la torre para detectar firmas térmicas humanas vivas (36°C - 37.5°C), diferenciándolas de fuentes de calor inanimadas o ganado.
-* **Extensión Anfibia Opcional:** En zonas costeras o fluviales, boyas marinas/fluviales conectadas por radiofrecuencia a la torre para medir marea de tormenta y altura de inundación.
+Al llegar la alerta a la nube, el sistema despacha la información en paralelo según el tipo de institución:
 
----
-
-### B. Plataforma Centralizada de Gestión y Toma de Decisiones
-
-* **Centro de Control Digital (Dashboard GIS):**
-  - Mapeo geoespacial interactivo en tiempo real con integración de capas de riesgo (OpenStreetMap, cuencas hídricas, estado de puentes y carreteras).
-  - Unificación de datos provenientes tanto de las torres térmicas como de los mensajes SOS de las comunidades.
-* **Algoritmo de Priorización y Triage de Rescate:**
-  - El sistema calcula dinámicamente el índice **Life Threat Score (LTS)**:
-    $$\text{LTS} = (V_{\text{térmico}} \times 0.40) + (\text{Tiempo}_{\text{aislamiento}} \times 0.25) + (\text{Población}_{\text{vulnerable}} \times 0.20) + (\text{Ruta}_{\text{bloqueada}} \times 0.15)$$
-  - Ordena automáticamente las solicitudes de auxilio por orden estricto de riesgo vital.
-* **Planificación Logística de Despacho:**
-  - Algoritmo de optimización de ruteo con restricciones de capacidad de vehículos (*Vehicle Routing Problem - VRP*).
-  - Recomienda si el acceso debe ser por vía terrestre (camión 4x4), fluvial (lancha rápida militar) o puente aéreo (helicóptero).
-* **Interoperabilidad Institucional:**
-  - Diseñada bajo el estándar internacional **CAP (Common Alerting Protocol)** y **HXL (Humanitarian Exchange Language)**, compatible con los protocolos de Defensa Civil, SINAPRED, alcaldías y organismos internacionales (OCHA, Cruz Roja).
+| Actor Destinatario | Información Específica que Recibe | Acción Operativa Inmediata |
+| :--- | :--- | :--- |
+| **Hospitales y Centros de Salud** | Estimación de víctimas térmicas, gravedad de anegamiento y accesibilidad. | Alistamiento de camas de trauma, bolsas de sangre, sueros antiofídicos y ambulancias. |
+| **Centros de Operaciones (CODE / COMUPRED)** | Mapa de calor geolocalizado, rutas despejadas y prioridad de rescate. | Despacho de brigadas de rescate acuático, lanchas rápidas y bomberos. |
+| **Plantas de Bombeo de Agua Potable** | Estado de inundación de pozos, turbidez y nivel de corte eléctrico. | Desconexión preventiva de motores para evitar quema y activación de camiones cisterna. |
+| **Infraestructura y Policía (MTI / Gobernación)** | Integridad de puentes, carreteras y muelles de la zona. | Envío de maquinaria pesada para remoción de escombros y resguardo de albergues. |
 
 ---
 
-### C. Red de Alerta SOS Distribuida (Mesh / Cascada Comunitaria)
+## 5. Algoritmo de Escalamiento Jerárquico en Cascada
 
-Para comunidades ultra-alejadas sin presencia de torres ni brigadas fijas:
+Este es el mecanismo clave para **evitar el abandono de comunidades** cuando el centro de auxilio más cercano queda inhabilitado o rebasado:
 
-* **Mecanismo de Activación Comunitaria:**
-  - Terminales comunitarios de emergencia (botones de pánico físicos en escuelas/casas comunales o formularios ultra-ligeros por app móvil sin necesidad de internet).
-  - Admite canales de contingencia: SMS comprimido de 64 bytes, ráfagas de radiofrecuencia LoRa (915 MHz) o enlace satelital oportunista.
-* **Topología de Retransmisión en Cascada (Store-and-Forward Mesh):**
-  - Si la Comunidad A queda incomunicada y no tiene alcance directo al COE central, la señal salta automáticamente a la Comunidad B (la más cercana en línea de vista o por proximidad geográfica).
-  - La Comunidad B valida y retransmite hacia la Comunidad C, hasta que el paquete alcanza una torre sensorial o un puesto con conectividad.
-  - **Solidaridad Activa:** Alerta a los líderes de comunidades vecinas para organizar primeras respuestas comunitarias (evacuación preventiva a albergues elevados) mientras el equipo especializado se desplaza.
+```mermaid
+graph TD
+    T[Torre Sensorial Comunitaria] -->|Disparo SOS + Datos| L[Nivel 1: Centro de Salud y Brigada Local]
+    L -->|¿Capacidad suficiente?| D1{¿Responde en 15 min?}
+    
+    D1 -->|SÍ| S1[Atención Local Resuelta]
+    D1 -->|NO / Desbordado / Inundado| M[Nivel 2: Escalamiento Municipal COMUPRED]
+    
+    M -->|¿Requiere lanchas / rescate aéreo?| D2{¿Capacidad Municipal?}
+    D2 -->|SÍ| S2[Despacho Municipal Coordinado]
+    D2 -->|NO / Sin recursos suficientes| DEP[Nivel 3: Escalamiento Departamental CODE]
+    
+    DEP -->|¿Desastre mayor / Aislamiento total?| D3{¿Capacidad Regional?}
+    D3 -->|SÍ| S3[Despliegue Brigadas Departamentales]
+    D3 -->|NO / Catástrofe Nacional| CAP[Nivel 4: SINAPRED Central / Capital / Presidencia]
+    
+    CAP --> S4[Puente Aéreo / Naval Nacional y Fondos de Emergencia]
+```
+
+* **Regla de Timeout Automático:** Si el centro local no confirma recepción y disponibilidad de personal en **15 minutos**, la plataforma escala automáticamente al nivel superior con indicador de advertencia: *"Nivel Local Inoperativo - Requiere Intervención Municipal Urgente"*.
+* **Criterio de Gravedad:** Si la torre detecta más de 10 personas atrapadas y la planta de agua potable fuera de servicio, el sistema **activa simultáneamente los niveles Municipal y Departamental sin esperar timeouts**.
 
 ---
 
-## 3. Beneficios Esperados e Impacto
+## 6. Viabilidad, Factibilidad e Impacto
 
-1. **Reducción Drástica del Tiempo de Respuesta:** Pasa de una incertidumbre de 48 horas a un diagnóstico de situación en menos de **30 a 60 minutos** post-evento.
-2. **Optimización de Recursos Críticos:** Cero desplazamientos fallidos hacia rutas bloqueadas; despacho de socorristas exactamente a las coordenadas geográficas donde hay firmas térmicas confirmadas.
-3. **Inclusión Total de Zonas Históricamente Aisladas:** Ningún caserío o comunidad ribereña queda fuera del radar gracias al protocolo en cascada de bajo costo.
-4. **Sostenibilidad Económica y Escalabilidad:** Arquitectura de software libre con hardware modular, replicable en cualquier país de la cuenca del Caribe, Centroamérica y la región andina.
+1. **Viabilidad Técnica:** Arquitectura en la nube basada en microservicios y WebSockets para telemetría en tiempo real, con bases de datos geoespaciales y canales satelitales tolerantes a desconexiones.
+2. **Factibilidad Operativa:** No sustituye a las autoridades; se integra como herramienta de soporte a la decisión para el SINAPRED, Ministerios de Salud y comités departamentales.
+3. **Impacto Humanitario:** Transforma una respuesta reactiva de días en un **despliegue coordinado en menos de 30 minutos**, conectando el agua, la salud y la seguridad civil en un solo canal digital.
