@@ -1,51 +1,66 @@
-# RESILIX-LATAM: Sistema Nodal Autónomo de Detección, Gestión de Rescate y Escalamiento Jerárquico en la Post-Emergencia
+# Nexo SOS · Android + Meshtastic (Reto 9 - Rally Latinoamericano de Innovación 2026)
 
-> **Rally Latinoamericano de Innovación — Desafío 9: Optimización y priorización de recursos y esfuerzos en la post-emergencia**
-
-Plataforma ciberfísica e integral de respuesta táctica en las **primeras 72 horas críticas post-desastre**, que articula **Torres Sensoriales Autónomas de Ultra-Largo Alcance (15 a 40 km)**, un **Servidor Cloud Distribuido por Nodos** y un **Algoritmo de Escalamiento Jerárquico Territorial** (Comunidad ➔ Municipio ➔ Departamento ➔ Capital/Nacional).
+Aplicación Android *offline-first* en **Kotlin + Jetpack Compose** (`minSdk = 26`) conectada a radios **Meshtastic (LoRa)** mediante Bluetooth BLE (o malla simulada rotulada para demostración), diseñada para registrar necesidades verificables y ejecutar la **cadena de escalamiento territorial de cuatro niveles** (`Comarca` $\rightarrow$ `Municipio` $\rightarrow$ `Cabecera Departamental` $\rightarrow$ `Sede Central Managua`) sobre un corredor piloto de **máximo tres torres (`T1`, `T2`, `T3`)**.
 
 ---
 
-## 🎯 Arquitectura de Respuesta en la Post-Emergencia
+## Arquitectura Multi-Módulo (Anexo F)
 
+| Módulo | Contenido |
+| :--- | :--- |
+| [`:domain`](./domain) | Las **15 entidades de negocio** del Anexo E (`Institucion`, `Territorio`, `Usuario`, `Dispositivo`, `Solicitud`, `Necesidad`, `EventoEstado`, `Asignacion`, `Reserva`, `Mensaje`, `Acuse`, `Outbox`, `Vencimiento`, `ReporteVial`, `CentroAtencion`) y el motor determinista [`EscalationEngine`](./domain/src/main/kotlin/ni/edu/rally/nexosos/domain/engine/EscalationEngine.kt). |
+| [`:protocol`](./protocol) | Codificador binario compacto [`NexoPacketCodec`](./protocol/src/main/kotlin/ni/edu/rally/nexosos/protocol/NexoPacketCodec.kt) sobre `PRIVATE_APP = 256` con límite estricto $\le 160\text{ bytes}$ y autenticador **HMAC-SHA256 truncado a 16 bytes**. |
+| [`:data-local`](./data-local) | Base de datos SQLite/Room [`NexoDatabase`](./data-local/src/main/kotlin/ni/edu/rally/nexosos/datalocal/db/NexoDatabase.kt) y [`NexoLocalRepository`](./data-local/src/main/kotlin/ni/edu/rally/nexosos/datalocal/repository/NexoLocalRepository.kt) con transacciones atómicas (`guardarTransicionYOutboxAtomico`) y semilla pre-provisionada del corredor piloto. |
+| [`:transport-mesh`](./transport-mesh) | [`MeshTransportManager`](./transport-mesh/src/main/kotlin/ni/edu/rally/nexosos/transportmesh/MeshTransportManager.kt): escáner/cliente BLE Meshtastic (`UUID 6ba1b218-15a8-461f-9fa8-5dcae273eafd`) + transporte simulado rotulado y medidor de carga de radio (20 SOS / 10 min). |
+| [`:transport-ip`](./transport-ip) | [`GatewaySyncManager`](./transport-ip/src/main/kotlin/ni/edu/rally/nexosos/transportip/GatewaySyncManager.kt): sincronización por pasarela IP y respaldo satelital Iridium SBD, simulación de `Malla aislada de Managua` y consola central alterna (`RPO 24h / RTO 4h`). |
+| [`:app`](./app) | Interfaz en Jetpack Compose que implementa **RF-01 a RF-09**, [`MeshForegroundService`](./app/src/main/kotlin/ni/edu/rally/nexosos/service/MeshForegroundService.kt) (`connectedDevice`) y el **Asistente de Demostración del Rally (Anexo I y J)**. |
+
+---
+
+## Pantallas y Requisitos Verificables (Anexo D)
+
+1. **RF-01 Inicio y conexión ([`TabInicioYDemoScreen.kt`](./app/src/main/kotlin/ni/edu/rally/nexosos/ui/screens/TabInicioYDemoScreen.kt)):**
+   - Separa explícitamente `Internet disponible`, `Radio vinculado` y `Malla Autoridad alcanzable`.
+   - Prohibido mostrar `"Enviado"` solo por guardar en SQLite: si no hay radio vinculado, registra `"Pendiente de transmisión"`.
+   - Incluye el botón interactivo paso a paso para el **Recorrido de Demostración del Rally (Anexo I)**.
+2. **RF-02 Crear SOS y RF-03 Ubicación ([`TabCrearSosScreen.kt`](./app/src/main/kotlin/ni/edu/rally/nexosos/ui/screens/TabCrearSosScreen.kt)):**
+   - Selección de necesidad, cantidad, urgencia, personas afectadas y ubicación por GNSS (precisión y antigüedad), mapa local o código de sitio comunitario.
+   - Nunca utiliza automáticamente la ubicación de la torre (`T1-T3`) como la ubicación de la víctima.
+3. **RF-04 Mis solicitudes y RF-08 Seguimiento y cierre ([`TabMisSolicitudesScreen.kt`](./app/src/main/kotlin/ni/edu/rally/nexosos/ui/screens/TabMisSolicitudesScreen.kt)):**
+   - Cola local `Outbox` con tamaño en bytes ($\le 160\text{ B}$), cronología completa de estados mostrando quién confirmó cada paso, relojes de 60 s y 180 s en vivo, y seguimiento (`En camino`, `Atendido`, `Cancelado con motivo`).
+4. **RF-05 Bandeja de autoridad ([`TabBandejaAutoridadScreen.kt`](./app/src/main/kotlin/ni/edu/rally/nexosos/ui/screens/TabBandejaAutoridadScreen.kt)):**
+   - Activa únicamente la bandeja de decisión del nivel responsable actual (`Comarca`, `Municipio`, `Cabecera Departamental`, `Sede Central Managua`).
+   - Soporta emitir `RECIBIDO_AUTORIDAD`, **aceptación parcial** (ej. aceptar 4 de 10 unidades en Municipio y escalar automáticamente 6 a Cabecera Departamental conservando el mismo UUID), declaración de capacidad insuficiente con motivo obligatorio y simulación de vencimientos de 60 s / 180 s.
+5. **RF-06 Mapa y accesos, RF-07 Recursos y RF-09 Configuración protegida ([`TabMapaYConfigScreen.kt`](./app/src/main/kotlin/ni/edu/rally/nexosos/ui/screens/TabMapaYConfigScreen.kt)):**
+   - Croquis offline del corredor con las 3 torres (`T1`, `T2`, `T3`), puntos de reunión, centros receptores y vías (`Comprobada`, `Candidata`, `Bloqueada`).
+   - Reserva de inventario propio por institución impidiendo doble reserva local.
+   - Directorio territorial protegido, claves HMAC pre-provisionadas y bitácora de seguridad.
+
+---
+
+## 🚀 Cómo Probar y Ejecutar
+
+### 1. Probar en la PC (Simulador Web Interactivo)
+Ejecuta el script de inicio rápido:
+```cmd
+PROBAR_EN_PC.bat
 ```
-                             [ EVENTO CATASTRÓFICO CESADO ]
-                                           │
-                                           ▼
-                      [ TORRE SENSORIAL DE LARGO ALCANCE (15 - 40 km) ]
-            • Barrido térmico MWIR (FLIR Ranger HDC): Detección de víctimas a 16 km
-            • Radar AESA (SPEXER 2000): Conteo de sobrevivientes y vías a 18-36 km
-            • Telemetría LoRaWAN (50 km): Estado bombas ENACAL, postes ENATREL y botones SOS
-                                           │
-                                           ▼
-                            [ PAQUETE SOS POST-DESASTRE ]
-               (JSON/CAP · Life Threat Score · Mapa de Calor Satelital)
-                                           │
-      ┌────────────────────────┬───────────┴───────────┬────────────────────────┐
-      ▼                        ▼                       ▼                        ▼
-[ MINSA / SALUD ]       [ CODE / RESCATE ]      [ AGUA POTABLE ]         [ MTI / POLICÍA ]
-Alistamiento camas      Despacho de botes y     Corte preventivo bomba   Cierre de puentes
-trauma y sueros         brigadas acuáticas      y camiones cisterna      y rutas transitables
-                                           │
-                                           ▼
-                    [ ESCALAMIENTO JERÁRQUICO EN CASCADA ]
-            Comunidad  ──>  Municipio  ──>  Departamento  ──>  Capital / Nacional
-          (Si el puesto    (Si la alcaldía   (Si el CODE dept.   (SINAPRED Central
-           local colapsa)   está rebasada)    requiere apoyo)     activa ejército y aire)
+Abre en tu navegador `http://localhost:8080/` para acceder a la consola interactiva con mapa tipo Waze de San Rafael del Sur, inyección de mensajes SOS desde las 3 torres (`T1 Masachapa`, `T2 San Rafael del Sur`, `T3 El Crucero`), simulación de bloqueos viales y descarga directa del APK.
+
+### 2. Compilar el APK Android
+Para compilar la aplicación Android nativa de forma automatizada:
+```cmd
+COMPILAR_APK.bat
 ```
+El archivo binario compilado queda listo en:
+- [`NexoSOS-SanRafaelDelSur.apk`](./NexoSOS-SanRafaelDelSur.apk) (16.35 MB, instalable en Android 8.0+ / API 26+).
 
 ---
 
-## 🚀 Puntos Clave de la Solución
+## 📑 Documentación Ejecutiva y Presupuesto
 
-1. **Enfoque 100% Post-Emergencia:** Optimiza la toma de decisiones en el momento de mayor incertidumbre (horas 0 a 72 tras el impacto), cuando las comunicaciones terrestres y la electricidad están caídas.
-2. **Cobertura Territorial Masiva:** Sensores térmicos criogénicos y radar AESA que cubren de **15 a 40 km de radio por torre**, reduciendo drásticamente la cantidad de infraestructura necesaria.
-3. **Distribución Multiactor Especializada:** La alerta no va a un buzón genérico; se canaliza automáticamente a **MINSA** (salud), **COMUPRED/SINAPRED** (rescate), **ENACAL** (agua potable), **ENATREL** (energía) y **MTI** (vías).
-4. **Escalamiento Jerárquico Automático:** Temporizador estricto de 15 minutos que escala la solicitud de ayuda al nivel superior si el centro de auxilio local fue destruido o desbordado.
+- **Documento Ejecutivo, Presupuesto y Retorno de Inversión (ROI / Payback):**  
+  👉 Consulta [`DOCUMENTO_EJECUTIVO_Y_PRESUPUESTO_NEXO_SOS.md`](./DOCUMENTO_EJECUTIVO_Y_PRESUPUESTO_NEXO_SOS.md) con el análisis financiero completo (CAPEX, OPEX, Payback de 2.3 a 8 meses y justificación técnica para el Reto 9).
+- **Propuesta Técnica Institucional Original:**  
+  👉 Consulta [`PROPUESTA_TECNICA.md`](./PROPUESTA_TECNICA.md) con la parametrización de SINAPRED, COMUPRED, MINSA, ENACAL, ENATREL y MTI.
 
----
-
-## 📄 Documentación Completa
-
-Para conocer todos los detalles técnicos, fórmulas del *Life Threat Score*, parametrización institucional y hardware de largo alcance:
-- 📖 Consulta la [Propuesta Técnica Detallada](PROPUESTA_TECNICA.md).
